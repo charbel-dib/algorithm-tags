@@ -1,0 +1,70 @@
+{
+  "winner": "tfidf_svm",
+  "primary_metric": "f1_macro9",
+  "selection_partition": "validation",
+  "candidates": [
+    "tfidf_svm",
+    "tfidf_manual_rules",
+    "tfidf_stopwords"
+  ],
+  "validation_scores": {
+    "reference_tfidf_svm": {
+      "f1_macro": 0.6370073483421564,
+      "f1_macro9": 0.6238302649412181,
+      "f1_micro": 0.5927230046948356,
+      "f1_weighted": 0.5949012140433073,
+      "f1_no_target": 0.5184135977337111
+    },
+    "tfidf_svm": {
+      "f1_macro": 0.6494785812837405,
+      "f1_macro9": 0.6446459652973786,
+      "f1_micro": 0.602757715036113,
+      "f1_weighted": 0.6024408743631835,
+      "f1_no_target": 0.6059850374064838
+    },
+    "tfidf_manual_rules": {
+      "f1_macro": 0.6376425358687922,
+      "f1_macro9": 0.6396765377783332,
+      "f1_micro": 0.5924276169265034,
+      "f1_weighted": 0.5899479193610806,
+      "f1_no_target": 0.6559485530546624
+    },
+    "tfidf_stopwords": {
+      "f1_macro": 0.6333273547413633,
+      "f1_macro9": 0.6291809792214722,
+      "f1_micro": 0.5980327868852459,
+      "f1_weighted": 0.5972101592264013,
+      "f1_no_target": 0.5960099750623441
+    }
+  },
+  "thresholds": [
+    -0.22850133627653174,
+    -0.22850133627653174,
+    -0.22850133627653174,
+    -0.22850133627653174,
+    -0.22850133627653174,
+    -0.22850133627653174,
+    -0.22850133627653174,
+    -0.22850133627653174
+  ],
+  "threshold_source": "three_fold_oof_train",
+  "parameters": {
+    "model": "linear_svm",
+    "field": "statement",
+    "word_char": false,
+    "max_features": 30000,
+    "min_df": 2,
+    "sublinear_tf": true,
+    "normalize_blocks": true,
+    "C": 1.0,
+    "seed": 42
+  },
+  "dataset_sha256": "5cadd8b7a3f85662b5ec6d4d33b69cf1dffb29ee93015cbe4fc7be57e213ed6c",
+  "split_sha256": "860dfced0f12442edfe6513614619a9f06be173c746d34facbebb6e413da4dec",
+  "model_sha256": "d4bcb74e63cc0dcdc9dd26a2108b2bd9414e927d2d9bf398a56f89ea83c64072",
+  "test_used_for_selection": false,
+  "test_previously_consulted": true,
+  "selection_basis": "Choix sur validation ; aucun réglage du modèle ou du seuil à partir du test.",
+  "learned_parameters_equal_between_threshold_objectives": true,
+  "macro8_comparison": "results/thresholds_macro8/selection_macro8.json"
+}

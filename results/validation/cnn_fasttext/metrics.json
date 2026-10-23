@@ -1,0 +1,121 @@
+{
+  "records": 997,
+  "overall": {
+    "precision_macro": 0.6197187603093282,
+    "recall_macro": 0.6083665156679605,
+    "f1_macro": 0.611422346947013,
+    "precision_micro": 0.5758928571428571,
+    "recall_micro": 0.5657894736842105,
+    "f1_micro": 0.5707964601769911,
+    "precision_weighted": 0.5776247570637785,
+    "recall_weighted": 0.5657894736842105,
+    "f1_weighted": 0.5689029123738089,
+    "exact_match": 0.5145436308926781,
+    "without_target_count": 461,
+    "without_target_false_positives": 153,
+    "without_target_false_positive_rate": 0.3318872017353579,
+    "f1_no_target": 0.6574172892209178,
+    "f1_macro9": 0.616532896088558
+  },
+  "per_label": {
+    "math": {
+      "precision": 0.5186440677966102,
+      "recall": 0.5425531914893617,
+      "f1": 0.5303292894280762,
+      "support": 282,
+      "predicted_positive": 295,
+      "tn": 573,
+      "fp": 142,
+      "fn": 129,
+      "tp": 153
+    },
+    "graphs": {
+      "precision": 0.5975609756097561,
+      "recall": 0.44954128440366975,
+      "f1": 0.5130890052356021,
+      "support": 109,
+      "predicted_positive": 82,
+      "tn": 855,
+      "fp": 33,
+      "fn": 60,
+      "tp": 49
+    },
+    "strings": {
+      "precision": 0.6105263157894737,
+      "recall": 0.6823529411764706,
+      "f1": 0.6444444444444445,
+      "support": 85,
+      "predicted_positive": 95,
+      "tn": 875,
+      "fp": 37,
+      "fn": 27,
+      "tp": 58
+    },
+    "number theory": {
+      "precision": 0.6071428571428571,
+      "recall": 0.4857142857142857,
+      "f1": 0.5396825396825397,
+      "support": 70,
+      "predicted_positive": 56,
+      "tn": 905,
+      "fp": 22,
+      "fn": 36,
+      "tp": 34
+    },
+    "trees": {
+      "precision": 0.6470588235294118,
+      "recall": 0.676923076923077,
+      "f1": 0.6616541353383458,
+      "support": 65,
+      "predicted_positive": 68,
+      "tn": 908,
+      "fp": 24,
+      "fn": 21,
+      "tp": 44
+    },
+    "geometry": {
+      "precision": 0.5833333333333334,
+      "recall": 0.6363636363636364,
+      "f1": 0.6086956521739131,
+      "support": 33,
+      "predicted_positive": 36,
+      "tn": 949,
+      "fp": 15,
+      "fn": 12,
+      "tp": 21
+    },
+    "games": {
+      "precision": 0.7619047619047619,
+      "recall": 0.7619047619047619,
+      "f1": 0.7619047619047619,
+      "support": 21,
+      "predicted_positive": 21,
+      "tn": 971,
+      "fp": 5,
+      "fn": 5,
+      "tp": 16
+    },
+    "probabilities": {
+      "precision": 0.631578947368421,
+      "recall": 0.631578947368421,
+      "f1": 0.631578947368421,
+      "support": 19,
+      "predicted_positive": 19,
+      "tn": 971,
+      "fp": 7,
+      "fn": 7,
+      "tp": 12
+    }
+  },
+  "no_target": {
+    "precision": 0.6470588235294118,
+    "recall": 0.6681127982646421,
+    "f1": 0.6574172892209178,
+    "support": 461,
+    "tn": 368,
+    "fp": 168,
+    "fn": 153,
+    "tp": 308
+  },
+  "warnings": []
+}

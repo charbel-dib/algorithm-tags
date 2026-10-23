@@ -1,0 +1,14 @@
+{
+  "comparison": "SVM texte : objectifs de seuil macro8 et macro9",
+  "vocabulary_equal": true,
+  "idf_equal": true,
+  "vectorizer_options_equal": true,
+  "estimator_parameters_equal": true,
+  "coefficients_equal_for_all_eight_tags": true,
+  "intercepts_equal_for_all_eight_tags": true,
+  "oof_scores_equal": true,
+  "test_scores_equal": true,
+  "conclusion": "Les décisions changent uniquement par le seuil ; les paramètres appris sont identiques.",
+  "threshold_macro8": -0.3473418317735195,
+  "threshold_macro9": -0.22850133627653174
+}

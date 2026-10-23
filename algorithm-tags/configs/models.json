@@ -1,0 +1,96 @@
+{
+  "tfidf_logreg": {
+    "field": "statement",
+    "model": "logreg",
+    "C": 10.0,
+    "max_features": null,
+    "seed": 42
+  },
+  "cnn_random": {
+    "field": "statement",
+    "jobs": 2,
+    "model": "cnn",
+    "width": 64,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "dropout": 0.3,
+    "batch_size": 32,
+    "epochs": 13,
+    "max_tokens": 512,
+    "seed": 42
+  },
+  "cnn_word2vec": {
+    "field": "statement",
+    "jobs": 2,
+    "model": "cnn",
+    "initialization": "word2vec",
+    "width": 64,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "dropout": 0.3,
+    "batch_size": 32,
+    "epochs": 22,
+    "max_tokens": 512,
+    "seed": 42
+  },
+  "cnn_fasttext": {
+    "field": "statement",
+    "jobs": 2,
+    "model": "cnn",
+    "initialization": "fasttext",
+    "width": 64,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "dropout": 0.3,
+    "batch_size": 32,
+    "epochs": 29,
+    "max_tokens": 512,
+    "seed": 42
+  },
+  "tfidf_svm": {
+    "model": "linear_svm",
+    "field": "statement",
+    "word_char": false,
+    "max_features": 30000,
+    "min_df": 2,
+    "sublinear_tf": true,
+    "normalize_blocks": true,
+    "C": 1.0,
+    "seed": 42
+  },
+  "word_char_svm": {
+    "model": "linear_svm",
+    "field": "statement",
+    "word_char": true,
+    "max_features": 30000,
+    "min_df": 2,
+    "sublinear_tf": true,
+    "normalize_blocks": true,
+    "C": 1.0,
+    "seed": 42
+  },
+  "tfidf_manual_rules": {
+    "model": "linear_svm",
+    "field": "statement",
+    "word_char": false,
+    "max_features": 30000,
+    "min_df": 2,
+    "sublinear_tf": true,
+    "normalize_blocks": true,
+    "C": 1.0,
+    "seed": 42,
+    "manual_rules": true
+  },
+  "tfidf_stopwords": {
+    "model": "linear_svm",
+    "field": "statement",
+    "word_char": false,
+    "max_features": 30000,
+    "min_df": 2,
+    "sublinear_tf": true,
+    "normalize_blocks": true,
+    "C": 1.0,
+    "seed": 42,
+    "stopwords": true
+  }
+}

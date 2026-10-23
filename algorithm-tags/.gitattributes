@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.joblib -text
+*.npz -text
+*.png -text

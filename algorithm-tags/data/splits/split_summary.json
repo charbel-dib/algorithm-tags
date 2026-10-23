@@ -1,0 +1,61 @@
+{
+  "target_order": [
+    "math",
+    "graphs",
+    "strings",
+    "number theory",
+    "trees",
+    "geometry",
+    "games",
+    "probabilities"
+  ],
+  "dataset_sha256": "5cadd8b7a3f85662b5ec6d4d33b69cf1dffb29ee93015cbe4fc7be57e213ed6c",
+  "split_sha256": "860dfced0f12442edfe6513614619a9f06be173c746d34facbebb6e413da4dec",
+  "records": 4982,
+  "splits": {
+    "train": {
+      "records": 2981,
+      "without_target": 1382,
+      "positive_counts": {
+        "math": 844,
+        "graphs": 325,
+        "strings": 253,
+        "number theory": 210,
+        "trees": 194,
+        "geometry": 100,
+        "games": 63,
+        "probabilities": 55
+      }
+    },
+    "validation": {
+      "records": 997,
+      "without_target": 461,
+      "positive_counts": {
+        "math": 282,
+        "graphs": 109,
+        "strings": 85,
+        "number theory": 70,
+        "trees": 65,
+        "geometry": 33,
+        "games": 21,
+        "probabilities": 19
+      }
+    },
+    "test": {
+      "records": 1004,
+      "without_target": 461,
+      "positive_counts": {
+        "math": 282,
+        "graphs": 108,
+        "strings": 84,
+        "number theory": 70,
+        "trees": 65,
+        "geometry": 33,
+        "games": 21,
+        "probabilities": 18
+      }
+    }
+  },
+  "raw_empty_annotations": 41,
+  "origin": "Affectations originales, vérifiées par empreinte SHA-256."
+}

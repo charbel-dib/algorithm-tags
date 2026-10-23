@@ -1,0 +1,32 @@
+{
+  "target_order": [
+    "math",
+    "graphs",
+    "strings",
+    "number theory",
+    "trees",
+    "geometry",
+    "games",
+    "probabilities"
+  ],
+  "default_model": "tfidf_svm",
+  "dataset_sha256": "5cadd8b7a3f85662b5ec6d4d33b69cf1dffb29ee93015cbe4fc7be57e213ed6c",
+  "split_sha256": "860dfced0f12442edfe6513614619a9f06be173c746d34facbebb6e413da4dec",
+  "models": {
+    "tfidf_svm": {
+      "path": "tfidf_svm.joblib",
+      "sha256": "d4bcb74e63cc0dcdc9dd26a2108b2bd9414e927d2d9bf398a56f89ea83c64072",
+      "score_kind": "margin",
+      "thresholds": [
+        -0.3473418317735195,
+        -0.3473418317735195,
+        -0.3473418317735195,
+        -0.3473418317735195,
+        -0.3473418317735195,
+        -0.3473418317735195,
+        -0.3473418317735195,
+        -0.3473418317735195
+      ]
+    }
+  }
+}
