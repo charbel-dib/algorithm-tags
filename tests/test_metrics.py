@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from algo_tags.metrics import scores_for
+from algo_tags.metrics import scores_for, tag_confusion
 
 
 class MetricsTest(unittest.TestCase):
@@ -21,6 +21,16 @@ class MetricsTest(unittest.TestCase):
         self.assertAlmostEqual(result["f1_macro9"], (0.5 + 0.5) / 9)
         self.assertEqual(result["false_alarms_no_tag"], 1)
         self.assertAlmostEqual(result["exact_match"], 0.5)
+
+    def test_tag_confusion_shows_which_tag_is_taken_for_which(self):
+        y = np.zeros((2, 8), dtype=bool)
+        pred = np.zeros((2, 8), dtype=bool)
+        y[0, 4] = True  # a "trees" problem...
+        pred[0, 1] = True  # ...predicted "graphs"
+        m = tag_confusion(y, pred)
+        self.assertEqual(m.shape, (9, 9))
+        self.assertEqual(m[4, 1], 1.0)  # true trees -> predicted graphs
+        self.assertEqual(m[8, 8], 1.0)  # the empty problem stays empty
 
     def test_perfect_prediction(self):
         y = np.eye(8, dtype=bool)

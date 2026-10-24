@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from algo_tags.data import TAGS, load_problems, select, targets, to_problem
+from algo_tags.data import TAGS, load_problems, preprocess, select, targets, to_problem
 
-from helpers import raw_problem
+from helpers import raw_problem, raw_problems
 
 
 class DataTest(unittest.TestCase):
@@ -47,6 +47,18 @@ class DataTest(unittest.TestCase):
         self.assertEqual([p["src_uid"] for p in select(problems, split, ["train", "validation"])], ["p000", "p001"])
         with self.assertRaises(ValueError):
             select(problems, {"p000": "train"}, ["train"])
+
+    def test_preprocess_writes_a_jsonl_that_loads_back_identically(self):
+        with tempfile.TemporaryDirectory() as folder:
+            raw_dir = Path(folder, "raw")
+            raw_dir.mkdir()
+            for i, raw in enumerate(raw_problems(16)):
+                Path(raw_dir, f"sample_{i}.json").write_text(json.dumps(raw))
+            out = Path(folder, "processed", "problems.jsonl")
+            summary = preprocess(raw_dir, out)
+            self.assertEqual(summary["problems"], 16)
+            self.assertTrue(out.with_name("problems_summary.json").exists())
+            self.assertEqual(load_problems(out), load_problems(raw_dir))
 
 
 if __name__ == "__main__":

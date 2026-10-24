@@ -1,3 +1,4 @@
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,7 +9,7 @@ from algo_tags.data import TAGS, targets, to_problem
 from algo_tags.metrics import scores_for
 from algo_tags.model import PRESETS, TagModel
 
-from helpers import raw_problems
+from helpers import raw_problem, raw_problems
 
 
 class ModelTest(unittest.TestCase):
@@ -31,8 +32,19 @@ class ModelTest(unittest.TestCase):
             path = Path(folder, "model.joblib")
             self.model.save(path)
             loaded = TagModel.load(path)
+            card = json.loads(path.with_suffix(".json").read_text())
+        self.assertEqual(card["model"], "final")
+        self.assertEqual(card["trained_on"], 80)
         np.testing.assert_allclose(loaded.scores(self.problems), self.model.scores(self.problems))
         self.assertEqual(loaded.threshold, self.model.threshold)
+
+    def test_tag_reads_a_raw_problem_and_ignores_its_tags(self):
+        raw = raw_problem(999, "geometry")
+        raw["tags"] = ["strings"]
+        answer = self.model.tag(raw)
+        self.assertEqual(answer["tags"], ["geometry"])
+        self.assertEqual(set(answer["margins"]), set(TAGS))
+        self.assertGreater(answer["latency_ms"], 0)
 
     def test_top_features_name_the_blocks(self):
         top = self.model.top_features(5)

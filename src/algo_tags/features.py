@@ -1,4 +1,18 @@
-"""Feature blocks. Each block is fitted on the training problems only, then concatenated with a weight."""
+"""Feature extraction: six blocks turned into one sparse matrix.
+
+| block        | reads                                   | how                          | weight |
+|--------------|-----------------------------------------|------------------------------|--------|
+| ``words``    | statement                               | TF-IDF, words 1-2            | 1.0    |
+| ``chars``    | statement                               | TF-IDF, characters 3-5       | 0.5    |
+| ``code``     | Python solution, boilerplate removed    | TF-IDF, words 1-2            | 0.5    |
+| ``ast``      | syntax tree of the solution             | TF-IDF on structural tokens  | 0.3    |
+| ``difficulty`` | Codeforces rating                     | 8 values, standardised       | 0.25   |
+| ``samples``  | sample tests and output specification   | 11 clues, standardised       | 0.25   |
+
+Every block is fitted on the training problems only (vocabulary, IDF, mean and variance), so
+nothing from the evaluated problems leaks into the features. TF-IDF rows are L2-normalised; the
+weight then sets how much a block counts against the others.
+"""
 
 import ast
 import re
@@ -22,6 +36,7 @@ def clean_code(code: str) -> str:
 
 
 def _parse(code: str):
+    """Parse Python 3 code, or Python 2 code after a light rewrite; None if both fail."""
     py2 = re.sub(r"^(\s*)print\s+(?!\()(.*)$", r"\1print(\2)", code, flags=re.M)
     py2 = py2.replace("raw_input", "input").replace("xrange", "range")
     for source in (code, py2):  # Python 3 first, then a light Python 2 rewrite
@@ -36,7 +51,12 @@ def _parse(code: str):
 
 @lru_cache(maxsize=None)
 def ast_tokens(code: str) -> str:
-    """Structure of the solution: node types, called functions, attributes, imports, operators."""
+    """Structural tokens of a solution, independent of variable names.
+
+    Example: ``from math import gcd; print(gcd(a, b) % 998244353)`` gives tokens such as
+    ``I_math I_gcd C_gcd OP_Mod K_MOD``. Unparsable code (1.3 % of the corpus) gives ``PARSE_ERROR``.
+    Results are cached because the same solution is parsed in every cross-validation fold.
+    """
     tree = _parse(code)
     if tree is None:
         return "PARSE_ERROR"
@@ -64,7 +84,10 @@ def ast_tokens(code: str) -> str:
 
 
 def difficulty_features(problems) -> np.ndarray:
-    """Rating / 1000, missing flag and cumulative rating buckets."""
+    """Rating / 1000, a missing flag and six cumulative buckets (>= 1000, 1300, ..., 2500).
+
+    A missing rating is replaced by 1700, the median, and flagged.
+    """
     rows = []
     for p in problems:
         d = p["difficulty"]
@@ -74,7 +97,12 @@ def difficulty_features(problems) -> np.ndarray:
 
 
 def sample_features(problems) -> np.ndarray:
-    """Clues from the sample tests and the output specification."""
+    """Eleven clues from the sample tests and the output specification (see ``DENSE_NAMES``).
+
+    They target tags whose statement words can be ambiguous: real numbers in the answer
+    (geometry, probabilities), lines of two integers (edges of a graph or a tree), player names
+    (games), an answer modulo a prime (combinatorics, probabilities).
+    """
     rows = []
     for p in problems:
         lines_in = [line for line in p["sample_in"].split("\n") if line.strip()]
@@ -117,12 +145,14 @@ class Features:
     """Concatenation of weighted blocks: TF-IDF blocks are L2-normalised, dense blocks standardised."""
 
     def __init__(self, blocks):
+        """Args: blocks: names taken from ``TEXT_BLOCKS`` and ``DENSE_BLOCKS``."""
         unknown = set(blocks) - set(TEXT_BLOCKS) - set(DENSE_BLOCKS)
         if unknown:
             raise ValueError(f"Unknown feature blocks: {sorted(unknown)}")
         self.blocks = tuple(blocks)
 
     def fit(self, problems):
+        """Learn each block (vocabulary and IDF, or mean and variance) on training problems."""
         self.fitted = {}
         for name in self.blocks:
             if name in TEXT_BLOCKS:
@@ -143,6 +173,7 @@ class Features:
         return names
 
     def transform(self, problems):
+        """Sparse matrix (n_problems, n_features) built with the fitted blocks."""
         parts = []
         for name in self.blocks:
             if name in TEXT_BLOCKS:

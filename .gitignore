@@ -10,6 +10,7 @@ data/raw/
 data/processed/
 models/
 runs/
+logs/
 *.zip
 .DS_Store
 Thumbs.db

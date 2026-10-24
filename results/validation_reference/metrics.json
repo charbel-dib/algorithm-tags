@@ -1,0 +1,122 @@
+{
+  "model": {
+    "model": "reference",
+    "blocks": [
+      "words"
+    ],
+    "C": 1.0,
+    "threshold": -0.22837728827911152,
+    "tags": [
+      "math",
+      "graphs",
+      "strings",
+      "number theory",
+      "trees",
+      "geometry",
+      "games",
+      "probabilities"
+    ],
+    "trained_on": 2981,
+    "n_features": 30000,
+    "out_of_fold_macro9": 64.12,
+    "training_seconds": 11.2,
+    "trained_at": "2026-10-24T18:21:19+00:00",
+    "versions": {
+      "algo_tags": "2.1.0",
+      "python": "3.13.17",
+      "scikit-learn": "1.9.1",
+      "numpy": "2.5.3",
+      "scipy": "1.18.1"
+    }
+  },
+  "split": "validation",
+  "f1_macro9": 0.646573231999519,
+  "f1_macro8": 0.6510233149271397,
+  "f1_micro": 0.6057818659658344,
+  "f1_no_tag": 0.6109725685785536,
+  "exact_match": 0.5015045135406219,
+  "false_alarms_no_tag": 216,
+  "no_tag_support": 461,
+  "per_tag": {
+    "math": {
+      "precision": 0.49226804123711343,
+      "recall": 0.6773049645390071,
+      "f1": 0.5701492537313433,
+      "support": 282,
+      "tp": 191,
+      "fp": 197,
+      "fn": 91,
+      "tn": 518
+    },
+    "graphs": {
+      "precision": 0.5223880597014925,
+      "recall": 0.6422018348623854,
+      "f1": 0.5761316872427984,
+      "support": 109,
+      "tp": 70,
+      "fp": 64,
+      "fn": 39,
+      "tn": 824
+    },
+    "strings": {
+      "precision": 0.5982905982905983,
+      "recall": 0.8235294117647058,
+      "f1": 0.693069306930693,
+      "support": 85,
+      "tp": 70,
+      "fp": 47,
+      "fn": 15,
+      "tn": 865
+    },
+    "number theory": {
+      "precision": 0.5357142857142857,
+      "recall": 0.42857142857142855,
+      "f1": 0.47619047619047616,
+      "support": 70,
+      "tp": 30,
+      "fp": 26,
+      "fn": 40,
+      "tn": 901
+    },
+    "trees": {
+      "precision": 0.7014925373134329,
+      "recall": 0.7230769230769231,
+      "f1": 0.7121212121212122,
+      "support": 65,
+      "tp": 47,
+      "fp": 20,
+      "fn": 18,
+      "tn": 912
+    },
+    "geometry": {
+      "precision": 0.575,
+      "recall": 0.696969696969697,
+      "f1": 0.6301369863013698,
+      "support": 33,
+      "tp": 23,
+      "fp": 17,
+      "fn": 10,
+      "tn": 947
+    },
+    "games": {
+      "precision": 0.8636363636363636,
+      "recall": 0.9047619047619048,
+      "f1": 0.8837209302325582,
+      "support": 21,
+      "tp": 19,
+      "fp": 3,
+      "fn": 2,
+      "tn": 973
+    },
+    "probabilities": {
+      "precision": 0.7857142857142857,
+      "recall": 0.5789473684210527,
+      "f1": 0.6666666666666666,
+      "support": 19,
+      "tp": 11,
+      "fp": 3,
+      "fn": 8,
+      "tn": 975
+    }
+  }
+}

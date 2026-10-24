@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "algo-tags"
-version = "2.0.0"
+version = "2.1.0"
 description = "Multilabel classification of algorithm tags for programming problems"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,6 +20,9 @@ dependencies = [
 split = ["iterative-stratification==0.1.9"]
 notebooks = ["pandas>=2", "jupyter"]
 dev = ["ruff>=0.9"]
+
+[project.scripts]
+algo-tags = "algo_tags.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
