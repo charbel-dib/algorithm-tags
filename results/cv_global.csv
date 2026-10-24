@@ -1,0 +1,6 @@
+model,f1_macro9_mean,f1_macro9_std,f1_macro8_mean,f1_macro8_std,f1_micro_mean,f1_micro_std,f1_no_tag_mean,f1_no_tag_std,exact_match_mean,exact_match_std,false_alarms_no_tag_mean,false_alarms_no_tag_std,repeats
+reference,64.43,0.18,64.64,0.18,60.87,0.25,62.74,0.36,50.95,0.46,804.5,13.2,4
+code,66.24,0.75,66.38,0.83,63.3,0.38,65.05,0.49,53.29,0.67,769.0,19.53,4
+code_meta,66.85,0.13,66.9,0.16,63.33,0.21,66.45,0.74,53.95,0.59,721.75,28.47,4
+final,67.54,0.25,67.66,0.23,64.04,0.17,66.58,0.76,54.36,0.6,723.75,19.33,4
+final_no_code,65.8,0.22,65.8,0.25,61.8,0.21,65.76,0.2,52.68,0.07,724.5,13.14,4

@@ -1,150 +1,107 @@
-"""Interface en ligne de commande."""
+"""Command line: train, evaluate, predict, explain, cross-validate, split."""
 
 import argparse
 import json
-import os
 from pathlib import Path
+
+from .data import TAGS, load_problems, read_split, select, targets
+from .metrics import scores_for, table
+from .model import PRESETS, TagModel
+
+SPLIT = Path("data/splits/splits.csv")
 
 
 def main(argv=None):
-    for variable in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"):
-        os.environ.setdefault(variable, "2")
-    parser = argparse.ArgumentParser(
-        prog="algo_tags", description="Prédire les tags d'exercices d'algorithmique"
-    )
-    commands = parser.add_subparsers(dest="command", required=True)
-    prepare = commands.add_parser("preprocess", help="Préparer les JSON bruts")
-    prepare.add_argument("--input", type=Path, required=True)
-    prepare.add_argument("--output", type=Path, default=Path("data/processed"))
-    split = commands.add_parser("split", help="Créer un nouveau découpage 60/20/20")
-    split.add_argument("--data", type=Path, required=True)
-    split.add_argument("--output", type=Path, default=Path("data/splits"))
-    split.add_argument("--seed", type=int, default=42)
-    sample = commands.add_parser("sample", help="Exporter un exemple réel du test pour la démonstration")
-    sample.add_argument("--data", type=Path, required=True)
-    sample.add_argument("--splits", type=Path, required=True)
-    sample.add_argument("--output", type=Path, default=Path("examples/sample_0.json"))
-    predict = commands.add_parser("predict", help="Prédire un JSON, un dossier ou un JSONL")
-    evaluate = commands.add_parser("evaluate", help="Évaluer un modèle sur des exemples annotés")
-    for command in (predict, evaluate):
-        command.add_argument("--input", type=Path, required=True)
-        command.add_argument("--registry", type=Path, default=Path("models/registry.json"))
-        command.add_argument("--model", help="Par défaut : modèle indiqué dans le registre")
-    predict.add_argument("--output", type=Path, help="Fichier JSON de prédictions ; sinon sortie standard")
-    evaluate.add_argument("--output", type=Path, default=Path("runs/evaluation"))
-    evaluate.add_argument("--splits", type=Path)
-    evaluate.add_argument("--split", choices=("train", "validation", "test"))
-    train = commands.add_parser("train", help="Entraîner un modèle et l'évaluer sur validation")
-    experiments = commands.add_parser("experiment", help="Comparer les variantes de texte sur validation")
-    for command in (train, experiments):
-        command.add_argument("--data", type=Path, default=Path("data/processed/dataset.jsonl"))
-        command.add_argument("--splits", type=Path, default=Path("data/splits/splits.csv"))
-        command.add_argument("--config", type=Path, default=Path("configs/models.json"))
-        command.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
-        command.add_argument("--metric", choices=("f1_macro", "f1_macro9"), default="f1_macro9")
-        command.add_argument("--resume", action="store_true")
-    train.add_argument("--model", required=True)
-    train.add_argument("--output", type=Path, required=True)
-    experiments.add_argument(
-        "--models", nargs="+", default=["tfidf_svm", "tfidf_manual_rules", "tfidf_stopwords"]
-    )
-    experiments.add_argument("--output", type=Path, default=Path("runs/text_variants"))
-    experiments.add_argument("--reference-registry", type=Path, help="Ajouter un modèle déjà entraîné à comparer")
-    results = commands.add_parser("results", help="Afficher les résultats enregistrés")
-    results.add_argument("--results", type=Path, default=Path("results"))
-    results.add_argument("--split", choices=("validation", "test"), default="test")
-    verify = commands.add_parser("verify", help="Vérifier les modèles et les résultats enregistrés")
-    verify.add_argument("--results", type=Path, default=Path("results"))
-    verify.add_argument("--registry", type=Path, default=Path("models/registry.json"))
+    parser = argparse.ArgumentParser(prog="algo_tags", description="Predict algorithm tags of programming problems")
+    cmd = parser.add_subparsers(dest="command", required=True)
+
+    p = cmd.add_parser("train", help="train a model on one or more parts of the split")
+    p.add_argument("--data", type=Path, required=True, help="folder of raw JSON problems")
+    p.add_argument("--splits", type=Path, default=SPLIT)
+    p.add_argument("--model", choices=PRESETS, default="final")
+    p.add_argument("--train-on", nargs="+", default=["train"], choices=("train", "validation"))
+    p.add_argument("--output", type=Path, default=Path("models/final.joblib"))
+
+    p = cmd.add_parser("evaluate", help="scores of a trained model on a part of the split")
+    p.add_argument("--model", type=Path, required=True)
+    p.add_argument("--data", type=Path, required=True)
+    p.add_argument("--splits", type=Path, default=SPLIT)
+    p.add_argument("--on", default="test", choices=("train", "validation", "test"))
+    p.add_argument("--output", type=Path, help="optional JSON file with all the scores")
+
+    p = cmd.add_parser("predict", help="tags of one JSON problem or a folder of problems")
+    p.add_argument("--model", type=Path, required=True)
+    p.add_argument("--input", type=Path, required=True)
+
+    p = cmd.add_parser("explain", help="features with the largest weight for each tag")
+    p.add_argument("--model", type=Path, required=True)
+    p.add_argument("--top", type=int, default=15)
+
+    p = cmd.add_parser("cv", help="repeated cross-validation on train + validation (model comparison)")
+    p.add_argument("--data", type=Path, required=True)
+    p.add_argument("--splits", type=Path, default=SPLIT)
+    p.add_argument("--models", nargs="+", choices=PRESETS, default=["reference", "final"])
+    p.add_argument("--repeats", type=int, default=4)
+    p.add_argument("--jobs", type=int, default=-1)
+    p.add_argument("--output", type=Path, default=Path("results"))
+
+    p = cmd.add_parser("split", help="rebuild the stratified 60/20/20 split")
+    p.add_argument("--data", type=Path, required=True)
+    p.add_argument("--output", type=Path, default=SPLIT)
+    p.add_argument("--seed", type=int, default=42)
+
     args = parser.parse_args(argv)
-    try:
-        if args.command == "preprocess":
-            from .data import preprocess
 
-            summary = preprocess(args.input, args.output)
-            print(f"{summary['records_written']} exercices ; {summary['records_without_target']} sans cible")
-        elif args.command == "split":
-            from .split import create_split
+    if args.command == "train":
+        problems = select(load_problems(args.data), read_split(args.splits), args.train_on)
+        model = TagModel.preset(args.model).fit(problems, targets(problems))
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        model.save(args.output)
+        print(f"{args.model}: trained on {len(problems)} problems, threshold {model.threshold:.4f} -> {args.output}")
 
-            summary = create_split(args.data, args.output, args.seed)
-            for name, values in summary["splits"].items():
-                print(f"{name}: {values['records']} exemples, {values['without_target']} sans cible")
-        elif args.command == "sample":
-            from .inputs import load_records, read_assignments
-            from .storage import write_json
+    elif args.command == "evaluate":
+        problems = select(load_problems(args.data), read_split(args.splits), [args.on])
+        result = scores_for(targets(problems), TagModel.load(args.model).predict(problems))
+        print(f"{args.model} on {args.on} ({len(problems)} problems)\n{table(result)}")
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(result, indent=2) + "\n")
 
-            if args.output.exists():
-                raise ValueError("L'exemple existe déjà ; le conserver ou choisir un autre --output")
-            rows = load_records(args.data, assignments=read_assignments(args.splits), partition="test")
-            write_json(args.output, rows[0])
-            print(f"Exemple test {rows[0]['src_uid']} exporté dans {args.output}")
-        elif args.command in ("train", "experiment"):
-            from .training import run_experiments
+    elif args.command == "predict":
+        model = TagModel.load(args.model)
+        problems = load_problems(args.input)
+        for problem, scores in zip(problems, model.scores(problems)):
+            print(json.dumps({
+                "src_uid": problem["src_uid"],
+                "tags": [t for t, s in zip(TAGS, scores) if s >= model.threshold],
+                "margins": {t: round(float(s), 3) for t, s in zip(TAGS, scores)},
+                "threshold": round(model.threshold, 4),
+            }, indent=2))
 
-            names = [args.model] if args.command == "train" else args.models
-            print(
-                run_experiments(
-                    args.data,
-                    args.splits,
-                    args.config,
-                    names,
-                    args.output,
-                    metric=args.metric,
-                    device=args.device,
-                    resume=args.resume,
-                    reference_registry=args.reference_registry if args.command == "experiment" else None,
-                )
-            )
-        elif args.command == "results":
-            from .reporting import stored_table
+    elif args.command == "explain":
+        print("| Tag | Features with the largest weight |\n|---|---|")
+        for tag, names in TagModel.load(args.model).top_features(args.top).items():
+            print(f"| {tag} | " + ", ".join(f"`{name}`" for name in names) + " |")
 
-            print(stored_table(args.results, args.split))
-        elif args.command == "verify":
-            from .reporting import verify_results
-            from .storage import read_json, sha256
+    elif args.command == "cv":
+        from .cv import cross_validate, write_results
 
-            registry = read_json(args.registry)
-            installed, missing = 0, 0
-            for name, model in registry["models"].items():
-                if "path" not in model:
-                    continue
-                path = (args.registry.parent / model["path"]).resolve()
-                if not path.is_relative_to(args.registry.parent.resolve()):
-                    raise ValueError("Chemin du modèle hors du registre")
-                if not path.exists():
-                    missing += 1
-                    continue
-                if sha256(path) != model["sha256"]:
-                    raise ValueError("Modèle modifié : " + name)
-                installed += 1
-            print(verify_results(args.results, args.registry))
-            print(f"Poids : {installed} fichier(s) vérifié(s), {missing} absent(s), facultatifs pour ce contrôle.")
-        else:
-            from .inputs import load_records, read_assignments
-            from .model import Tagger
-            from .storage import write_json
+        problems = select(load_problems(args.data), read_split(args.splits), ["train", "validation"])
+        results = {}
+        for name in args.models:
+            results[name] = cross_validate(name, problems, targets(problems), args.repeats, jobs=args.jobs)
+            macro9 = [100 * r["f1_macro9"] for r in results[name]]
+            print(f"{name:15s} macro9 {sum(macro9) / len(macro9):.2f}  per repetition {[round(m, 2) for m in macro9]}")
+        write_results(results, args.output)
 
-            tagger = Tagger(args.registry, args.model)
-            if args.command == "predict":
-                rows = load_records(args.input)
-                records = tagger.records(rows)
-                value = records[0] if len(records) == 1 else records
-                if args.output:
-                    write_json(args.output, value)
-                else:
-                    print(json.dumps(value, ensure_ascii=False, indent=2))
-            else:
-                from .reporting import save_evaluation
+    elif args.command == "split":
+        from .split import make_split, write_split
 
-                if args.output.exists() and any(args.output.iterdir()):
-                    raise ValueError("Le dossier d'évaluation doit être vide")
-                assignments = read_assignments(args.splits) if args.splits else None
-                rows = load_records(args.input, labels=True, assignments=assignments, partition=args.split)
-                scores, predictions = tagger.predict(rows)
-                report = save_evaluation(args.output, rows, scores, predictions)
-                print(json.dumps(report, ensure_ascii=False, indent=2))
-    except (ValueError, OSError, KeyError, ModuleNotFoundError) as error:
-        parser.exit(2, f"Erreur : {error}\n")
+        if args.output.exists():
+            parser.error(f"{args.output} exists; choose another --output")
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        write_split(make_split(load_problems(args.data), args.seed), args.output)
+        print(f"split written to {args.output}")
 
 
 if __name__ == "__main__":

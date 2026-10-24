@@ -1,0 +1,41 @@
+model,tag,precision,recall,f1,f1_std,support
+reference,math,50.76,67.27,57.85,0.31,1126
+reference,graphs,54.25,60.25,57.08,0.69,434
+reference,strings,58.18,79.44,67.17,0.39,338
+reference,number theory,54.71,50.98,52.76,0.95,280
+reference,trees,70.8,72.97,71.86,0.7,259
+reference,geometry,62.17,65.41,63.74,0.86,133
+reference,games,78.37,85.12,81.59,0.35,84
+reference,probabilities,78.31,55.74,65.07,2.12,74
+code,math,53.38,70.0,60.56,0.37,1126
+code,graphs,57.75,65.32,61.3,0.8,434
+code,strings,58.65,81.88,68.34,0.38,338
+code,number theory,57.29,55.27,56.24,0.84,280
+code,trees,69.37,74.03,71.62,0.94,259
+code,geometry,65.8,68.23,66.98,0.7,133
+code,games,79.88,84.82,82.26,0.89,84
+code,probabilities,80.18,53.04,63.78,3.99,74
+code_meta,math,53.88,67.36,59.86,0.28,1126
+code_meta,graphs,58.74,66.36,62.29,0.42,434
+code_meta,strings,60.01,80.77,68.86,0.38,338
+code_meta,number theory,57.75,55.09,56.37,0.27,280
+code_meta,trees,71.24,73.84,72.51,0.68,259
+code_meta,geometry,66.65,65.23,65.89,0.77,133
+code_meta,games,83.8,81.55,82.65,0.6,84
+code_meta,probabilities,70.92,63.18,66.76,1.24,74
+final,math,54.48,68.96,60.86,0.33,1126
+final,graphs,58.81,66.13,62.25,0.66,434
+final,strings,59.59,80.25,68.39,0.46,338
+final,number theory,59.59,57.59,58.57,1.07,280
+final,trees,71.71,74.81,73.22,0.62,259
+final,geometry,67.31,66.17,66.72,0.99,133
+final,games,82.36,83.33,82.83,0.71,84
+final,probabilities,74.8,63.18,68.47,2.05,74
+final_no_code,math,53.21,65.23,58.61,0.62,1126
+final_no_code,graphs,54.69,61.87,58.04,0.56,434
+final_no_code,strings,59.59,79.59,68.14,0.18,338
+final_no_code,number theory,56.35,53.84,55.05,0.57,280
+final_no_code,trees,71.16,72.39,71.77,0.52,259
+final_no_code,geometry,63.08,64.47,63.73,1.31,133
+final_no_code,games,82.49,82.74,82.61,1.1,84
+final_no_code,probabilities,75.28,62.84,68.46,2.25,74

@@ -1,172 +1,155 @@
-"""TF-IDF et séquences de mots, appris uniquement sur les textes d'entraînement."""
+"""Feature blocks. Each block is fitted on the training problems only, then concatenated with a weight."""
 
-import hashlib
+import ast
 import re
-from collections import Counter
+import warnings
+from functools import lru_cache
 
 import numpy as np
 from scipy import sparse
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
-from sklearn.preprocessing import normalize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import StandardScaler
 
-from .data import TARGET_TAGS
+WORDS = dict(token_pattern=r"(?u)\b\w+\b", ngram_range=(1, 2), min_df=2, sublinear_tf=True)
+FLOAT, INT = re.compile(r"\d+\.\d+"), re.compile(r"-?\d+")
+IO_LINE = re.compile(r"^\s*(import sys|input\s*=|from sys import|#)")
+MODULI = {998244353, 1000000007, 1000000009}
 
-WORD_TOKEN = re.compile(r"(?u)\b\w+\b")
-PROTECTED = {
-    "no",
-    "not",
-    "nor",
-    "never",
-    "without",
-    "only",
-    "at",
-    "most",
-    "least",
-    "exactly",
-    "all",
-    "any",
-    "each",
-    "every",
-    "first",
-    "last",
-    "one",
-    "two",
-    "zero",
-    "same",
-    "different",
-    "more",
-    "less",
-    "before",
-    "after",
-    "between",
-    "within",
-    "both",
-    "either",
-    "neither",
+
+def clean_code(code: str) -> str:
+    """Drop fast-I/O boilerplate and comments, which say nothing about the algorithm."""
+    return "\n".join(line for line in code.split("\n") if not IO_LINE.match(line))
+
+
+def _parse(code: str):
+    py2 = re.sub(r"^(\s*)print\s+(?!\()(.*)$", r"\1print(\2)", code, flags=re.M)
+    py2 = py2.replace("raw_input", "input").replace("xrange", "range")
+    for source in (code, py2):  # Python 3 first, then a light Python 2 rewrite
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                return ast.parse(source)
+        except (SyntaxError, ValueError):
+            pass
+    return None
+
+
+@lru_cache(maxsize=None)
+def ast_tokens(code: str) -> str:
+    """Structure of the solution: node types, called functions, attributes, imports, operators."""
+    tree = _parse(code)
+    if tree is None:
+        return "PARSE_ERROR"
+    tokens = []
+    for node in ast.walk(tree):
+        tokens.append("N_" + type(node).__name__)
+        if isinstance(node, ast.Call):
+            func = node.func
+            name = getattr(func, "id", None) or getattr(func, "attr", None)
+            if name:
+                tokens.append("C_" + name)
+        elif isinstance(node, ast.Attribute):
+            tokens.append("A_" + node.attr)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            names = [alias.name for alias in node.names] + [getattr(node, "module", None) or ""]
+            tokens += ["I_" + n.replace(".", "_") for n in names if n]
+        elif isinstance(node, ast.BinOp):
+            tokens.append("OP_" + type(node.op).__name__)
+        elif isinstance(node, ast.Constant) and type(node.value) in (int, float):
+            if node.value in MODULI:
+                tokens.append("K_MOD")
+            elif isinstance(node.value, float):
+                tokens.append("K_FLOAT")
+    return " ".join(tokens)
+
+
+def difficulty_features(problems) -> np.ndarray:
+    """Rating / 1000, missing flag and cumulative rating buckets."""
+    rows = []
+    for p in problems:
+        d = p["difficulty"]
+        x = 1700.0 if d is None else d
+        rows.append([x / 1000, d is None] + [x >= b for b in (1000, 1300, 1600, 1900, 2200, 2500)])
+    return np.array(rows, dtype=float)
+
+
+def sample_features(problems) -> np.ndarray:
+    """Clues from the sample tests and the output specification."""
+    rows = []
+    for p in problems:
+        lines_in = [line for line in p["sample_in"].split("\n") if line.strip()]
+        lines_out = [line for line in p["sample_out"].split("\n") if line.strip()]
+        out, spec = p["sample_out"], p["output_spec"]
+        rows.append([
+            bool(FLOAT.search(out)),  # real-valued answers: geometry, probabilities
+            len(FLOAT.findall(out)) / (1 + len(INT.findall(out))),
+            np.mean([bool(re.fullmatch(r"\s*-?\d+\s+-?\d+\s*", line)) for line in lines_in]) if lines_in else 0,
+            np.mean([bool(re.search(r"[a-zA-Z]{3,}", line)) for line in lines_in]) if lines_in else 0,
+            np.log1p(len(lines_in)),
+            np.log1p(len(lines_out)),
+            bool(re.search(r"\b(Alice|Bob|First|Second|Win|Lose)\b", out, re.I)),  # games
+            bool(re.search(r"\b(YES|NO)\b", out, re.I)),
+            bool(re.search(r"998244353|10\^9\s*\+\s*7|10\^\{9\}\s*\+\s*7|1000000007|modulo", spec)),
+            bool(re.search(r"relative error", spec, re.I)),
+            max((len(x.lstrip("-")) for x in INT.findall(p["sample_in"])[:2000]), default=0),
+        ])
+    return np.array(rows, dtype=float)
+
+
+TEXT_BLOCKS = {
+    # name: (input, vectorizer options, weight)
+    "words": (lambda p: p["statement"], dict(max_features=30000, **WORDS), 1.0),
+    "chars": (lambda p: p["statement"], dict(analyzer="char_wb", ngram_range=(3, 5), min_df=2,
+                                             sublinear_tf=True, max_features=60000), 0.5),
+    "code": (lambda p: clean_code(p["code"]), dict(max_features=20000, **WORDS), 0.5),
+    "ast": (lambda p: ast_tokens(p["code"]), dict(max_features=20000, token_pattern=r"\S+", lowercase=False,
+                                                  ngram_range=(1, 2), min_df=2, sublinear_tf=True), 0.3),
 }
-PATTERNS = {
-    "math": [r"\bequations?\b", r"\barithmetic\b", r"\bformulas?\b"],
-    "graphs": [r"\bgraphs?\b", r"\bvert(?:ex|ices)\b", r"\bedges?\b"],
-    "strings": [r"\bstrings?\b", r"\bsubstrings?\b", r"\bpalindromes?\b"],
-    "number theory": [r"\bprimes?\b", r"\bdivis(?:or|ors|ible)\b", r"\bgcd\b", r"\blcm\b"],
-    "trees": [r"\btrees?\b", r"\bsubtrees?\b", r"\bancestors?\b"],
-    "geometry": [r"\bpolygons?\b", r"\btriangles?\b", r"\bcircles?\b", r"\bcoordinates\b"],
-    "games": [r"\bgames?\b", r"\bwinning strategy\b", r"\boptimal play\b", r"\btake\s+turns\b"],
-    "probabilities": [
-        r"\bprobabilit(?:y|ies)\b",
-        r"\bexpected value\b",
-        r"\bexpectation\b",
-        r"\buniformly at random\b",
-    ],
+DENSE_BLOCKS = {"difficulty": (difficulty_features, 0.25), "samples": (sample_features, 0.25)}
+DENSE_NAMES = {
+    "difficulty": ["rating", "rating_missing"] + [f"rating>={b}" for b in (1000, 1300, 1600, 1900, 2200, 2500)],
+    "samples": ["real_answer", "real_share", "edge_lines", "word_lines", "input_lines", "output_lines",
+                "player_names", "yes_no", "modulo", "relative_error", "max_digits"],
 }
 
 
-def rule_features(texts):
-    # Deux colonnes par tag, comme dans l'expérience d'origine. Les colonnes
-    # négatives restent nulles : aucune règle d'exclusion n'a été définie.
-    result = np.zeros((len(texts), 16), dtype=np.float32)
-    for j, tag in enumerate(TARGET_TAGS):
-        patterns = [re.compile(pattern, re.I) for pattern in PATTERNS[tag]]
-        result[:, 2 * j] = [sum(bool(p.search(text)) for p in patterns) for text in texts]
-    return result
+class Features:
+    """Concatenation of weighted blocks: TF-IDF blocks are L2-normalised, dense blocks standardised."""
 
+    def __init__(self, blocks):
+        unknown = set(blocks) - set(TEXT_BLOCKS) - set(DENSE_BLOCKS)
+        if unknown:
+            raise ValueError(f"Unknown feature blocks: {sorted(unknown)}")
+        self.blocks = tuple(blocks)
 
-class TfidfBlocks:
-    def __init__(self, config):
-        self.config = config
-        self.blocks = []
-
-    def fit(self, rows):
-        self.blocks = []
-        texts = [row["statement"] for row in rows]
-        modes = ("word", "char_wb") if self.config.get("word_char") else ("word",)
-        stopwords = sorted(ENGLISH_STOP_WORDS - PROTECTED) if self.config.get("stopwords") else None
-        for mode in modes:
-            options = dict(
-                analyzer=mode,
-                min_df=self.config.get("min_df", 2),
-                max_features=self.config.get("max_features", 50000),
-                sublinear_tf=self.config.get("sublinear_tf", False),
-                dtype=np.float32,
-            )
-            if mode == "word":
-                options.update(token_pattern=WORD_TOKEN.pattern, ngram_range=(1, 2), stop_words=stopwords)
+    def fit(self, problems):
+        self.fitted = {}
+        for name in self.blocks:
+            if name in TEXT_BLOCKS:
+                get, options, _ = TEXT_BLOCKS[name]
+                self.fitted[name] = TfidfVectorizer(**options).fit([get(p) for p in problems])
             else:
-                options.update(ngram_range=(3, 5))
-            self.blocks.append(("statement", TfidfVectorizer(**options).fit(texts)))
+                self.fitted[name] = StandardScaler().fit(DENSE_BLOCKS[name][0](problems))
         return self
 
-    def transform(self, rows):
-        parts = [encoder.transform([row[field] for row in rows]) for field, encoder in self.blocks]
-        matrix = sparse.hstack(parts, format="csr")
-        if self.config.get("normalize_blocks", False):
-            matrix = normalize(matrix)
-        if self.config.get("manual_rules", False):
-            # Même combinaison que dans l'expérience exploratoire : chaque bloc
-            # est normalisé, puis leur concaténation est normalisée à son tour.
-            rules = normalize(rule_features([row["statement"] for row in rows]))
-            matrix = normalize(sparse.hstack([matrix, sparse.csr_matrix(rules)], format="csr"))
-        return matrix
+    def names(self) -> list[str]:
+        """Readable name of every column, prefixed by its block (e.g. "code:gcd", "difficulty:2")."""
+        names = []
+        for name in self.blocks:
+            if name in TEXT_BLOCKS:
+                names += [f"{name}:{term}" for term in self.fitted[name].get_feature_names_out()]
+            else:
+                names += [f"{name}:{label}" for label in DENSE_NAMES[name]]
+        return names
 
-
-def stable_hash(value):
-    return int.from_bytes(hashlib.sha256(value.encode()).digest()[:8], "little")
-
-
-class Sequences:
-    def __init__(self, config):
-        self.config = config
-        self.field = "statement"
-        self.max_tokens = config.get("max_tokens", 512)
-        self.truncation = "head"
-
-    def tokenize(self, text):
-        return WORD_TOKEN.findall(text.lower())
-
-    def kept(self, words):
-        return words[: self.max_tokens]
-
-    def fit(self, rows):
-        counts = Counter()
-        for row in rows:
-            counts.update(set(self.tokenize(row[self.field])))
-        words = sorted(
-            (w for w in counts if counts[w] >= self.config.get("min_df", 2)),
-            key=lambda word: (-counts[word], word),
-        )
-        self.vocabulary_ = {
-            word: i + 2 for i, word in enumerate(words[: self.config.get("vocab_size", 20000) - 2])
-        }
-        return self
-
-    def transform(self, rows):
-        values = np.zeros((len(rows), self.max_tokens), dtype=np.int64)
-        for i, row in enumerate(rows):
-            ids = [self.vocabulary_.get(word, 1) for word in self.kept(self.tokenize(row[self.field]))] or [1]
-            values[i, : len(ids)] = ids
-        return values
-
-    def initialize(self, rows, width, kind, seed):
-        from gensim.models import FastText, Word2Vec
-
-        sentences = [self.tokenize(row[self.field]) for row in rows]
-        cls = FastText if kind == "fasttext" else Word2Vec
-        model = cls(
-            sentences=sentences,
-            vector_size=width,
-            window=5,
-            min_count=2,
-            workers=1,
-            sg=1,
-            seed=seed,
-            epochs=20,
-            hashfxn=stable_hash,
-        )
-        matrix = (
-            np.random.default_rng(seed).normal(0, 0.02, (len(self.vocabulary_) + 2, width)).astype("float32")
-        )
-        matrix[0] = 0
-        for word, i in self.vocabulary_.items():
-            if word in model.wv:
-                matrix[i] = model.wv[word]
-        return matrix
+    def transform(self, problems):
+        parts = []
+        for name in self.blocks:
+            if name in TEXT_BLOCKS:
+                get, _, weight = TEXT_BLOCKS[name]
+                parts.append(self.fitted[name].transform([get(p) for p in problems]) * weight)
+            else:
+                function, weight = DENSE_BLOCKS[name]
+                values = np.clip(self.fitted[name].transform(function(problems)), -5, 5)
+                parts.append(sparse.csr_matrix(values * weight))
+        return sparse.hstack(parts, format="csr")
