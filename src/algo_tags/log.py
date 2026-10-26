@@ -48,7 +48,14 @@ def setup_logging(log_file: Path | None = Path("logs/algo_tags.log"), level: int
 
 @contextmanager
 def timed(logger: logging.Logger, step: str):
-    """Log how long the wrapped block took: ``with timed(log, "fit"): ...``."""
+    """Log how long the wrapped block took: ``with timed(log, "fit"): ...``.
+
+    A block that raises is logged as failed, with its duration, and the error is passed on.
+    """
     start = time.perf_counter()
-    yield
+    try:
+        yield
+    except Exception:
+        logger.error("%s failed after %.2f s", step, time.perf_counter() - start)
+        raise
     logger.info("%s done in %.2f s", step, time.perf_counter() - start)

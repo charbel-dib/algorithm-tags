@@ -1,5 +1,7 @@
 # Algorithm tags
 
+[![Tests](https://github.com/charbel-dib/algorithm-tags/actions/workflows/tests.yml/badge.svg)](https://github.com/charbel-dib/algorithm-tags/actions/workflows/tests.yml)
+
 Prédire les tags algorithmiques d'un problème de programmation compétitive à partir de son énoncé, de sa solution Python, de sa difficulté et de ses exemples d'entrée et de sortie.
 
 Les données sont 4 982 problèmes Codeforces issus de [xCodeEval](https://arxiv.org/abs/2303.03004). Huit tags sont visés : `math`, `graphs`, `strings`, `number theory`, `trees`, `geometry`, `games`, `probabilities`. Un problème peut en avoir plusieurs, ou aucun : c'est le cas de 2 304 problèmes (46 %), qui sont gardés car le modèle rencontrera aussi ce cas en usage réel.
@@ -98,16 +100,16 @@ Pourquoi un modèle linéaire : sur 4 000 problèmes annotés, un SVM sur TF-IDF
 
 ## Installation
 
-Python 3.11 ou plus récent, aucun GPU.
+Python 3.12 ou plus récent, aucun GPU. Les dépendances sont gérées avec [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/charbel-dib/algorithm-tags.git && cd algorithm-tags
-python -m venv .venv
-source .venv/bin/activate              # Windows : .venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt -e ".[split,dev]"
+uv sync --extra split        # crée .venv avec les versions de uv.lock, plus ruff
 ```
 
-`requirements.txt` fixe les versions exactes utilisées pour les résultats. Extras : `split` (régénérer un split), `dev` (linter), `notebooks` (pandas, Jupyter).
+Les commandes s'écrivent ensuite `uv run python -m algo_tags ...`, ou `python -m algo_tags ...` après activation de l'environnement (`source .venv/bin/activate`, sous Windows `.venv\Scripts\Activate.ps1`).
+
+`uv.lock` fige toutes les versions, dépendances indirectes comprises : ce sont celles qui ont produit les résultats. Extras : `split` (régénérer un split), `notebooks` (pandas, Jupyter). Sans uv, `pip install -e ".[split]"` installe le paquet avec des versions récentes, sans garantie de retrouver exactement les mêmes chiffres.
 
 ## Utilisation
 
@@ -181,7 +183,7 @@ python -m algo_tags evaluate --model models/final.joblib --splits data/splits/sp
   model.tag(raw_problem)   # {"tags": [...], "margins": {...}, "threshold": ..., "latency_ms": ...}
   ```
 
-- **Docker** : l'image installe les versions exactes et lance la ligne de commande avec un utilisateur non root.
+- **Docker** : l'image installe les versions exactes de `uv.lock`, avec une image de base et une version de uv figées, et lance la ligne de commande avec un utilisateur non root. Les dépendances sont dans une couche à part : un changement de code ne les réinstalle pas.
 
   ```bash
   docker build -t algo-tags .
@@ -205,18 +207,18 @@ python -m algo_tags evaluate --model models/final.joblib --splits data/splits/sp
 - **Traçabilité** : chaque modèle est sauvé avec une fiche JSON (`models/final.json`) : blocs, seuil, nombre de problèmes et de features, F1 macro9 hors pli, durée d'entraînement, date et versions des bibliothèques. Un avertissement est émis si le modèle est chargé avec une autre version de scikit-learn.
 - **Validation des entrées** : un problème sans description est refusé avec un message clair. Les autres champs sont facultatifs, et le champ `tags` est ignoré à la prédiction.
 - **Coût** : modèle de 12 Mo, chargement en 0,6 s, 17 ms pour un problème isolé, 3,4 ms par problème en lot, entraînement en 70 s sur un CPU.
-- **Tests** : 23 tests unitaires sur données synthétiques, de la lecture des JSON à la ligne de commande, lancés à chaque push par GitHub Actions.
+- **Tests** : 29 tests unitaires sur données synthétiques, de la lecture des JSON à la ligne de commande. GitHub Actions les lance à chaque push sous Ubuntu et Windows, avec Python 3.12 et 3.13, et construit l'image Docker.
 
 ```bash
-python -m unittest discover -s tests
-ruff check .
+uv run python -m unittest discover -s tests
+uv run ruff check .
 ```
 
 Les fichiers `.joblib` ne doivent être chargés que s'ils viennent d'une source de confiance, comme tout fichier pickle.
 
 ## Reproductibilité
 
-Les chiffres de ce README ont été obtenus sous Linux avec les versions de `requirements.txt` ; deux exécutions sur une même machine donnent les mêmes chiffres. D'une machine à l'autre, les scores sur un seul split bougent de quelques dixièmes. Sous Windows, avec les mêmes données et versions : `final` 67,18 en validation et 66,42 en test (seuil −0,157), `reference` 64,92 en test.
+Les chiffres de ce README ont été obtenus sous Linux avec les versions de `uv.lock` ; deux exécutions sur une même machine donnent les mêmes chiffres. D'une machine à l'autre, les scores sur un seul split bougent de quelques dixièmes. Sous Windows, avec les mêmes données et versions : `final` 67,18 en validation et 66,42 en test (seuil −0,157), `reference` 64,92 en test.
 
 Cause : `max_features` coupe le vocabulaire à fréquence égale. Pour `words`, 6 260 termes sont à égalité à la limite des 30 000 et 946 sont gardés ; scikit-learn les départage avec un tri non stable, dont l'ordre peut dépendre de la machine. La validation croisée est stable (67,52 sous Windows, 67,54 sous Linux).
 
@@ -239,6 +241,8 @@ docs/              approches comparées, features les plus influentes
 notebooks/         exploration du corpus
 data/              split de référence (les JSON bruts ne sont pas versionnés)
 examples/          un problème du test au format brut, sans ses tags
+pyproject.toml     paquet et dépendances ; uv.lock : versions exactes
+Dockerfile         image de production ; .github/workflows/ : CI
 ```
 
 ## Limites et suites possibles
@@ -249,3 +253,5 @@ examples/          un problème du test au format brut, sans ses tags
 - Pistes non réalisées : fine-tuning d'un encodeur texte et code, plusieurs solutions par problème, plus de données annotées, audit des annotations de `math`. Elles sont détaillées dans [docs/approaches.md](docs/approaches.md).
 
 La version précédente du dépôt (modèles sur l'énoncé seul) reste disponible sous le tag `v1.0.0`.
+
+Licence MIT : voir [LICENSE](LICENSE).

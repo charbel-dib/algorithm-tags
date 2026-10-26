@@ -49,13 +49,14 @@ def _parse(code: str):
     return None
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=10_000)
 def ast_tokens(code: str) -> str:
     """Structural tokens of a solution, independent of variable names.
 
     Example: ``from math import gcd; print(gcd(a, b) % 998244353)`` gives tokens such as
     ``I_math I_gcd C_gcd OP_Mod K_MOD``. Unparsable code (1.3 % of the corpus) gives ``PARSE_ERROR``.
-    Results are cached because the same solution is parsed in every cross-validation fold.
+    Results are cached because the same solution is parsed in every cross-validation fold; the
+    cache is bounded so that a long-running service does not grow without limit.
     """
     tree = _parse(code)
     if tree is None:

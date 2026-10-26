@@ -70,9 +70,14 @@ def to_problem(raw: dict) -> dict:
 
 
 def _read_records(path: Path) -> list[dict]:
-    """All JSON objects of a file (``.json`` or ``.jsonl``) or of a folder searched recursively."""
+    """All JSON objects of a file (``.json`` or ``.jsonl``) or of a folder searched recursively.
+
+    In a folder, the ``*_summary.json`` files written by :func:`preprocess` are skipped, so that a
+    folder of prepared data can be read back.
+    """
     if path.is_dir():
-        files = sorted(path.rglob("*.json")) + sorted(path.rglob("*.jsonl"))
+        files = sorted(f for f in path.rglob("*.json") if not f.name.endswith("_summary.json"))
+        files += sorted(path.rglob("*.jsonl"))
     elif path.exists():
         files = [path]
     else:

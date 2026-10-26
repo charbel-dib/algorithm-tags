@@ -14,6 +14,18 @@ from helpers import raw_problems
 class CommandLineTest(unittest.TestCase):
     """The whole sequence a new user runs, on synthetic data: preprocess, train, evaluate, predict, explain, cv."""
 
+    @staticmethod
+    def release_logs():
+        """Close and detach the log handlers: a test's log file lives in its temporary folder, which Windows
+        cannot delete while the file is open, and later tests must not write to a file that is gone."""
+        logger = logging.getLogger("algo_tags")
+        for handler in logger.handlers:
+            handler.close()
+        logger.handlers.clear()
+
+    def tearDown(self):
+        self.release_logs()
+
     def test_full_sequence(self):
         with tempfile.TemporaryDirectory() as folder:
             cwd = os.getcwd()
@@ -43,9 +55,7 @@ class CommandLineTest(unittest.TestCase):
                 self.assertTrue(Path("logs/algo_tags.log").read_text())
                 self.assertEqual(main(["evaluate", "--model", "missing.joblib"]), 1)  # clean error, no traceback
             finally:
-                for handler in logging.getLogger("algo_tags").handlers:  # release the log file (Windows)
-                    handler.close()
-                logging.getLogger("algo_tags").handlers.clear()
+                self.release_logs()
                 os.chdir(cwd)
 
     def test_unwritable_log_file_does_not_stop_the_command(self):
@@ -55,9 +65,19 @@ class CommandLineTest(unittest.TestCase):
             missing_model = str(Path(folder, "missing.joblib"))  # the command fails on its input, not on the log
             log_file = str(blocker / "algo_tags.log")
             self.assertEqual(main(["--log-file", log_file, "explain", "--model", missing_model]), 1)
-            for handler in logging.getLogger("algo_tags").handlers:
-                handler.close()
+            self.release_logs()
 
+    def test_unwritable_output_gives_a_clean_error(self):
+        with tempfile.TemporaryDirectory() as folder:
+            blocker = Path(folder, "not_a_folder")
+            blocker.write_text("")
+            data = Path(folder, "problems.jsonl")
+            data.write_text("".join(json.dumps(r) + "\n" for r in raw_problems(10)))
+            base = ["--log-file", str(Path(folder, "log.txt"))]
+            # the output folder cannot be created (a file is in the way): logged error and exit code 1
+            self.assertEqual(main(base + ["preprocess", "--raw", str(data), "--output",
+                                          str(blocker / "out" / "problems.jsonl")]), 1)
+            self.release_logs()
 
     def test_split_rejects_impossible_sizes(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -68,8 +88,7 @@ class CommandLineTest(unittest.TestCase):
             for sizes in (["--test-size", "0"], ["--validation-size", "1.2"],
                           ["--test-size", "0.5", "--validation-size", "0.5"]):
                 self.assertEqual(main(base + sizes), 1)  # clean error before any split is drawn
-            for handler in logging.getLogger("algo_tags").handlers:
-                handler.close()
+            self.release_logs()
 
 
 if __name__ == "__main__":

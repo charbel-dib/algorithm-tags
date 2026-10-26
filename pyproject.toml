@@ -4,10 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "algo-tags"
-version = "2.1.0"
+dynamic = ["version"]  # read from algo_tags.__version__, the single source of the version
 description = "Multilabel classification of algorithm tags for programming problems"
 readme = "README.md"
-requires-python = ">=3.11"
+authors = [{ name = "Charbel Dib" }]
+requires-python = ">=3.12"  # numpy 2.5 and scipy 1.18, used for the results, need Python 3.12
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+# Loose ranges for library use. The exact versions of the results are locked in uv.lock.
 dependencies = [
     "numpy>=1.24",
     "scipy>=1.10",
@@ -19,10 +26,25 @@ dependencies = [
 [project.optional-dependencies]
 split = ["iterative-stratification==0.1.9"]
 notebooks = ["pandas>=2", "jupyter"]
-dev = ["ruff>=0.9"]
 
 [project.scripts]
 algo-tags = "algo_tags.__main__:main"
+
+[dependency-groups]
+dev = ["ruff>=0.9"]
+
+[tool.uv]
+# Versions that produced the published results; uv.lock pins them and every indirect dependency.
+constraint-dependencies = [
+    "numpy==2.5.3",
+    "scipy==1.18.1",
+    "scikit-learn==1.9.1",
+    "joblib==1.6.0",
+    "matplotlib==3.11.2",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "algo_tags.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]

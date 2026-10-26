@@ -59,6 +59,8 @@ class DataTest(unittest.TestCase):
             self.assertEqual(summary["problems"], 16)
             self.assertTrue(out.with_name("problems_summary.json").exists())
             self.assertEqual(load_problems(out), load_problems(raw_dir))
+            # the prepared folder (JSONL + summary) can be read back as a whole
+            self.assertEqual(load_problems(out.parent), load_problems(out))
 
 
 if __name__ == "__main__":

@@ -144,13 +144,17 @@ def run(args) -> None:
 
 
 def main(argv=None) -> int:
-    """Entry point of ``python -m algo_tags`` and ``algo-tags``. Returns 0 on success, 1 on a data or input error."""
+    """Entry point of ``python -m algo_tags`` and ``algo-tags``.
+
+    Returns 0 on success and 1 on an expected error (invalid data, missing or unwritable file),
+    which is logged without a traceback. Any other exception is a bug and keeps its traceback.
+    """
     args = build_parser().parse_args(argv)
     setup_logging(args.log_file)
     log.info("algo_tags %s: %s", __version__, " ".join(sys.argv[1:] if argv is None else argv))
     try:
         run(args)
-    except (ValueError, FileNotFoundError, KeyError) as error:
+    except (ValueError, OSError, KeyError) as error:
         log.error("%s", error)
         return 1
     return 0
