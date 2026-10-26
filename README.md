@@ -6,6 +6,8 @@ Prédire les tags algorithmiques d'un problème de programmation compétitive à
 
 Les données sont 4 982 problèmes Codeforces issus de [xCodeEval](https://arxiv.org/abs/2303.03004). Huit tags sont visés : `math`, `graphs`, `strings`, `number theory`, `trees`, `geometry`, `games`, `probabilities`. Un problème peut en avoir plusieurs, ou aucun : c'est le cas de 2 304 problèmes (46 %), qui sont gardés car le modèle rencontrera aussi ce cas en usage réel.
 
+**Résultat** : F1 macro9 de 67,5 en validation croisée contre 64,4 pour un SVM sur l'énoncé seul ; le gain vient de la solution Python, de sa structure, de la difficulté et des exemples.
+
 ## Protocole et métriques
 
 Scores en %, écarts en points de pourcentage.
@@ -54,7 +56,7 @@ Validation croisée, du tag le mieux prédit au moins bien prédit. Le gain est 
 
 ![F1 par tag](results/cv/cv_per_tag_f1.png)
 
-Ce qu'il faut en retenir :
+Lecture :
 
 - `games` et `trees` sont les mieux prédits : leur vocabulaire est très spécifique (« player », « optimally », « tree », « root »).
 - `number theory`, `math` et `graphs` sont les plus difficiles. Ce sont aussi ceux qui recoupent le plus d'autres tags : 75 % des problèmes `number theory` sont aussi `math`, et 38 % des problèmes `trees` sont aussi `graphs`.
@@ -65,15 +67,15 @@ Matrice de confusion entre tags (test). Ligne : vrai tag. Diagonale : rappel. Ho
 
 ![Confusion entre tags](results/test_final/tag_confusion.png)
 
-Les deux confusions principales sont attendues : 34 % des problèmes `trees` reçoivent `graphs` alors qu'ils ne l'ont pas, et 20 % des problèmes `number theory` reçoivent `math` alors qu'ils ne l'ont pas. Ces frontières sont déjà floues dans les annotations. Les matrices 2×2 par tag sont dans le même dossier ([`confusion_per_tag.png`](results/test_final/confusion_per_tag.png)), et les features les plus influentes par tag sont dans [docs/top_features.md](docs/top_features.md).
+Les deux confusions principales sont attendues : 34 % des problèmes `trees` reçoivent `graphs` à tort, et 20 % des `number theory` reçoivent `math` à tort. Ces frontières sont déjà floues dans les annotations. Les matrices 2×2 par tag sont dans le même dossier ([`confusion_per_tag.png`](results/test_final/confusion_per_tag.png)), et les features les plus influentes par tag sont dans [docs/top_features.md](docs/top_features.md).
 
 ## Démarche
 
-L'objectif était de trouver ce qui fait vraiment progresser le score, puis de garder la solution la plus simple qui l'obtient.
+L'objectif était de trouver ce qui fait progresser le score, puis de garder la solution la plus simple qui l'obtient.
 
 1. **Explorer les données** ([notebook](notebooks/01_exploration.ipynb)). Près de la moitié des problèmes n'a aucun tag, deux tags sont rares, plusieurs tags se recoupent, la difficulté change la répartition des tags et les exemples trahissent certains tags. Chaque constat a donné un choix de modélisation (métrique F1 macro9, `class_weight="balanced"`, blocs `difficulty` et `samples`).
 2. **Choisir la famille de modèle sur l'énoncé seul.** TF-IDF avec régression logistique ou SVM, CNN avec plusieurs embeddings, encodeurs pré-entraînés, classification zéro-shot et petit LLM local. Le SVM linéaire sur TF-IDF est le meilleur, et le plus simple. Il devient la référence.
-3. **Ajouter de l'information, pas de la complexité.** Le code de la solution, sa structure, la difficulté et les exemples sont ajoutés un par un, chacun comme un bloc séparé. Chaque étape est mesurée (tableau ci-dessus). C'est là que se fait le gain de 3 points.
+3. **Ajouter des sources d'information.** Le code de la solution, sa structure, la difficulté et les exemples sont ajoutés un par un, chacun comme un bloc séparé. Chaque étape est mesurée (tableau ci-dessus). C'est là que se fait le gain de 3 points.
 4. **Vérifier qu'un modèle plus complexe ne fait pas mieux sur ces mêmes features.** Environ 130 variantes ont été essayées : autres classifieurs, LightGBM, MLP, plus proches voisins, lexiques par tag, stacking, seuils par tag, embeddings de code et de texte gelés. Aucune ne dépasse le modèle retenu d'un écart qui justifie sa complexité.
 
 Le détail des comparaisons est dans [docs/approaches.md](docs/approaches.md).
@@ -183,7 +185,7 @@ python -m algo_tags evaluate --model models/final.joblib --splits data/splits/sp
   model.tag(raw_problem)   # {"tags": [...], "margins": {...}, "threshold": ..., "latency_ms": ...}
   ```
 
-- **Docker** : l'image installe les versions exactes de `uv.lock`, avec une image de base et une version de uv figées, et lance la ligne de commande avec un utilisateur non root. Les dépendances sont dans une couche à part : un changement de code ne les réinstalle pas.
+- **Docker** : image figée (base, uv et dépendances de `uv.lock`), utilisateur non root, dépendances dans une couche à part.
 
   ```bash
   docker build -t algo-tags .

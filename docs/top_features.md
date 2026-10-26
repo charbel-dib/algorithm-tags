@@ -23,7 +23,7 @@ python -m algo_tags explain
 
 Comment la lire :
 
-- Les mots de l'énoncé dominent pour tous les tags, et ils ont du sens : « graph », « connected » pour `graphs`, « prime », « gcd » pour `number theory`, « optimally », « wins » pour `games`.
+- Les mots de l'énoncé dominent pour tous les tags : « graph », « connected » pour `graphs`, « prime », « gcd » pour `number theory`, « optimally », « wins » pour `games`.
 - Le code apporte des indices d'implémentation que l'énoncé ne donne pas toujours : `visited` et `queue` pour `graphs`, `parent` et `dfs` pour `trees`, `gcd` pour `number theory`, `random` pour `probabilities`.
 - Les exemples interviennent là où on les attend : `samples:real_answer` (réponse décimale) pour `probabilities`, `samples:player_names` pour `games`.
 - Pour `math`, les premiers termes sont `le 10` (la contrainte LaTeX `\le 10^9`), `5 5` ou `you to` : des formulations de contraintes plutôt que des notions mathématiques. Ce tag est large et difficile à cerner, ce qui explique son F1 plus faible.

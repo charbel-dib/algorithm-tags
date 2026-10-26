@@ -2,14 +2,9 @@
 
 Ce document résume les approches essayées avant de retenir le modèle final, et comment elles ont été évaluées. Les chiffres viennent de plusieurs séries d'expériences aux protocoles différents : on ne compare que les lignes d'un même tableau. Scores en %, écarts en points ; protocole et métriques (F1 macro8, F1 macro9) sont définis dans le [README](../README.md#protocole-et-métriques).
 
-## 1. Le raisonnement
+Les étapes suivent la démarche décrite dans le [README](../README.md#démarche). Une variante n'est retenue que si son gain est net au regard de l'écart-type entre répétitions et de la complexité qu'elle ajoute.
 
-1. **Partir d'une base simple et solide.** Avant tout modèle, deux repères : ne prédire aucun tag, et des règles écrites à la main.
-2. **Choisir la famille de modèle sur l'énoncé seul.** Si un modèle plus riche (CNN, transformer, LLM) comprend mieux le texte, c'est là qu'il doit le montrer.
-3. **Ajouter l'information disponible au moment de prédire** : la solution Python, sa structure, la difficulté, les exemples d'entrée et de sortie. Chaque source est ajoutée comme un bloc séparé et mesurée seule.
-4. **Vérifier qu'aucun modèle plus complexe ne fait mieux sur ces mêmes features.** Une variante n'est retenue que si son gain est net au regard de l'écart-type entre répétitions et de la complexité qu'elle ajoute.
-
-## 2. Étape 1 : quel modèle sur l'énoncé ?
+## 1. Quel modèle sur l'énoncé ?
 
 Entraînement sur train (2 981 problèmes), seuil choisi sur les marges out-of-fold du train, mesure sur validation (997) et test (1 004). Le code de ces modèles est dans la version `v1.0.0` du dépôt.
 
@@ -34,7 +29,7 @@ Les modèles pré-entraînés non fine-tunés restent loin derrière (protocoles
 
 Conclusion : sur 3 000 problèmes annotés, le SVM linéaire sur TF-IDF est le meilleur et le plus simple. C'est le modèle `reference`.
 
-## 3. Étape 2 : ajouter de l'information
+## 2. Ajouter de l'information
 
 Validation croisée sur train + validation (3 978 problèmes), 5 plis × 4 répétitions ; vocabulaire et seuil appris dans chaque pli. Ce tableau est produit par le dépôt (`python -m algo_tags cv`, dossier `results/cv/`). La colonne « Gain » est l'écart avec la ligne du dessus.
 
@@ -51,7 +46,7 @@ Deux points de méthode comptent :
 - Le code est un **bloc séparé, moins pondéré** que l'énoncé. Mélanger énoncé et code dans un même TF-IDF n'apportait rien : le vocabulaire du code (`input`, `range`, `print`) se mêle alors à celui de l'énoncé et en dilue les poids.
 - Les lignes de lecture et d'écriture présentes dans presque toutes les solutions sont retirées du code. Elles ne disent rien de l'algorithme.
 
-## 4. Étape 3 : un modèle plus complexe fait-il mieux ?
+## 3. Un modèle plus complexe fait-il mieux ?
 
 Environ 130 configurations, évaluées en validation croisée (5 plis × 2 répétitions, seuil choisi dans chaque pli). Le modèle retenu a ensuite été confirmé sur 2 autres répétitions, qui n'avaient pas servi pendant ces essais. La dernière colonne est l'écart de F1 macro9 avec le modèle retenu, en points.
 
@@ -82,14 +77,14 @@ Dernière vérification : des encodeurs pré-entraînés de code et de texte, ut
 
 Cet essai a tourné sur un PC Windows avec GPU, où `final` fait 67,52 au lieu de 67,54 (voir « Reproductibilité » dans le README) : les gains sont mesurés par rapport à ces 67,52, sur les mêmes découpages. Aucun n'atteint le critère. Le gain le plus fort (+0,44) demanderait de faire tourner en production un encodeur de 150 millions de paramètres, idéalement sur GPU, pour un écart à peine supérieur à l'écart-type entre répétitions (0,25). Ces embeddings ne sont donc pas intégrés.
 
-## 5. Ce que ces essais montrent
+## 4. Conclusions
 
-- **Le levier, c'est l'information, pas le modèle.** Ajouter le code, sa structure, la difficulté, les exemples et les suites de caractères apporte 3,1 points. Aucune des variantes de modèle essayées sur ces mêmes informations ne dépasse le modèle retenu de plus de 0,6 point.
-- **Un SVM linéaire est déjà un lexique pondéré complet.** Il apprend un poids par mot et par tag. Un lexique extrait à part (« gcd », « divisor » pour `number theory`) n'en est qu'une version tronquée, d'où l'absence de gain. Les features les plus influentes du modèle final sont dans [top_features.md](top_features.md).
-- **`math` est un tag large.** Ses termes les plus influents décrivent des contraintes (« 10^9 », « divisible ») plus que des notions précises, et il recoupe presque tous les autres tags. Sa fréquence est stable quelle que soit la difficulté (25 à 33 %).
-- **Les annotations ont des limites.** Sur Codeforces, des programmeurs expérimentés à qui on demande de deviner les tags n'en retrouvent qu'une partie ([Athavale et al., 2019](https://arxiv.org/abs/1903.00830)). Sur ce type de données, un SVM sur TF-IDF fait jeu égal avec des transformers ([Kim et al., 2023](https://arxiv.org/abs/2310.05791)), et le code est la source complémentaire la plus forte ([Lobanov et al., 2023](https://arxiv.org/abs/2301.04597)).
+- Ajouter le code, sa structure, la difficulté, les exemples et les suites de caractères apporte 3,1 points. Aucune variante de modèle essayée sur ces mêmes informations ne dépasse le modèle retenu de plus de 0,6 point.
+- Un SVM linéaire apprend un poids par mot et par tag : c'est déjà un lexique pondéré complet. Un lexique extrait à part (« gcd », « divisor » pour `number theory`) n'en est qu'une version tronquée, d'où l'absence de gain. Les features les plus influentes du modèle final sont dans [top_features.md](top_features.md).
+- Les termes les plus influents de `math` décrivent des contraintes (« 10^9 », « divisible ») plus que des notions précises, et ce tag recoupe presque tous les autres. Sa fréquence est stable quelle que soit la difficulté (25 à 33 %).
+- Sur Codeforces, des programmeurs expérimentés à qui on demande de deviner les tags n'en retrouvent qu'une partie ([Athavale et al., 2019](https://arxiv.org/abs/1903.00830)). Sur ce type de données, un SVM sur TF-IDF fait jeu égal avec des transformers ([Kim et al., 2023](https://arxiv.org/abs/2310.05791)), et le code est la source complémentaire la plus forte ([Lobanov et al., 2023](https://arxiv.org/abs/2301.04597)).
 
-## 6. Pistes
+## 5. Pistes
 
 - **Fine-tuning d'un encodeur texte et code** (UniXcoder, ModernBERT), combiné ensuite au SVM. C'est l'étape suivante logique, puisque les embeddings gelés apportent déjà un petit signal.
 - **Plusieurs solutions par problème** : le code devient plus informatif quand on agrège plusieurs façons de résoudre le même problème.
